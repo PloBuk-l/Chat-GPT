@@ -1,2 +1,2 @@
-# Chat-GPT
-Chat-GPT
+# NexoraAI
+NexoraAI
