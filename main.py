@@ -16,6 +16,7 @@ from markdown.extensions import codehilite, fenced_code
 # Путь для хранения API ключа
 API_KEY_FILE = "api_key.txt" 
 SESSIONS_FILE = "sessions.pkl"  # Файл для хранения сессий
+SETTINGS_FILE = "settings.pkl"  # Файл для хранения настроек
 
 # Функция для загрузки API ключа из файла
 def load_api_key():
@@ -41,67 +42,84 @@ def load_sessions_from_file():
             return pickle.load(f)
     return []
 
+# Функция для сохранения настроек
+def save_settings(settings):
+    with open(SETTINGS_FILE, "wb") as f:
+        pickle.dump(settings, f)
+
+# Функция для загрузки настроек
+def load_settings():
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "rb") as f:
+                return pickle.load(f)
+        except:
+            return {"dark_mode": True}
+    return {"dark_mode": True}
+
 class SecondWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Ввод API ключа")
-        self.resize(400, 250)
-        self.setStyleSheet(""" 
-            QWidget {
-                background-color: #121212;
-                color: #FFFFFF;
-            }
-            QLineEdit {
-                background-color: #1E1E1E;
-                border: 2px solid #555;
-                border-radius: 8px;
-                padding: 8px;
-                color: #FFFFFF;
-                font-family: Helvetica;
-                font-size: 14px;
-            }
-            QLabel {
-                font-family: Helvetica;
-                font-size: 16px;
-                margin-bottom: 10px;
-            }
-            QPushButton {
-                background-color: #3A86FF;
-                color: #FFFFFF;
-                border-radius: 8px;
-                padding: 8px 16px;
-            }
-        """)
+        # Загружаем настройки темы
+        self.settings = load_settings()
+        self.dark_mode = self.settings.get("dark_mode", True)
+        
+        self.setWindowTitle("NexoraAI - API ключ")
+        self.resize(480, 320)
+        self.apply_theme()
 
         layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignCenter)  # Выровнить всё по центру
+        layout.setAlignment(Qt.AlignCenter)
+        layout.setSpacing(24)
+        layout.setContentsMargins(40, 40, 40, 40)
         
-        label = QLabel("Введите ваш API ключ")
-        label.setAlignment(Qt.AlignCenter)  # Выровнить текст по центру
-        layout.addWidget(label)
+        # Заголовок
+        title_label = QLabel("Добро пожаловать в NexoraAI")
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setStyleSheet("font-size: 24px; font-weight: 700; margin-bottom: 8px;")
+        layout.addWidget(title_label)
+        
+        subtitle_label = QLabel("Введите ваш API ключ для начала работы")
+        subtitle_label.setAlignment(Qt.AlignCenter)
+        subtitle_label.setStyleSheet("font-size: 14px; margin-bottom: 20px;")
+        layout.addWidget(subtitle_label)
 
         self.api_key_input = QLineEdit()
-        self.api_key_input.setPlaceholderText("API ключ")
-        self.api_key_input.setFixedWidth(200)  # Установить ширину поля ввода
-        self.api_key_input.setAlignment(Qt.AlignCenter)  # Выровнить текст внутри по центру
+        self.api_key_input.setPlaceholderText("sk-your-api-key-here...")
+        self.api_key_input.setFixedWidth(320)
+        self.api_key_input.setEchoMode(QLineEdit.Password)
         layout.addWidget(self.api_key_input, alignment=Qt.AlignHCenter)
 
-        self.save_button = GlowingButton("Сохранить")
-        self.save_button.setFixedWidth(100)  # Узкая ширина кнопки
+        # Кнопка показать/скрыть пароль
+        show_hide_layout = QHBoxLayout()
+        self.show_password_btn = QPushButton("👁")
+        self.show_password_btn.setFixedSize(180, 40)
+        self.show_password_btn.clicked.connect(self.toggle_password_visibility)
+        show_hide_layout.addStretch()
+        show_hide_layout.addWidget(self.show_password_btn)
+        show_hide_layout.addStretch()
+        layout.addLayout(show_hide_layout)
+
+        self.save_button = GlowingButton("Сохранить и продолжить")
+        self.save_button.setFixedWidth(250)
         self.save_button.clicked.connect(self.save_api_key)
         layout.addWidget(self.save_button, alignment=Qt.AlignHCenter)
 
-        link_label = QLabel('<br><b><a href="https://telegra.ph/NexoraAI-05-29">Инструкция</a>')
+        # Ссылки
+        links_layout = QVBoxLayout()
+        links_layout.setSpacing(8)
+        
+        link_label = QLabel('<a href="https://telegra.ph/NexoraAI-05-29" style="text-decoration: none;">📖 Инструкция по получению API ключа</a>')
         link_label.setOpenExternalLinks(True)
         link_label.setAlignment(Qt.AlignCenter)
-        link_label.setStyleSheet("QLabel { font-family: Helvetica; font-size: 16px; color: #3A86FF; }")
-        layout.addWidget(link_label, alignment=Qt.AlignHCenter)
+        links_layout.addWidget(link_label)
 
-        link_label1 = QLabel('<b><a>При использовании</a><br><a>вы соглашаетесь с</a><br><a href="https://telegra.ph/NexoraAI-05-29-2">пользовательским соглашением</a>')
-        link_label1.setOpenExternalLinks(True)
-        link_label1.setAlignment(Qt.AlignCenter)
-        link_label1.setStyleSheet("QLabel { font-family: Helvetica; font-size: 16px; color: #3A86FF; }")
-        layout.addWidget(link_label1, alignment=Qt.AlignHCenter)
+        agreement_label = QLabel('<a href="https://telegra.ph/NexoraAI-05-29-2" style="text-decoration: none;">📋 Пользовательское соглашение</a>')
+        agreement_label.setOpenExternalLinks(True)
+        agreement_label.setAlignment(Qt.AlignCenter)
+        links_layout.addWidget(agreement_label)
+        
+        layout.addLayout(links_layout)
 
         self.setLayout(layout)
         
@@ -109,6 +127,106 @@ class SecondWindow(QWidget):
         saved_key = load_api_key()
         if saved_key:
             self.api_key_input.setText(saved_key)
+    
+    def apply_theme(self):
+        if self.dark_mode:
+            self.setStyleSheet(""" 
+                QWidget {
+                    background: #0F0F23;
+                    color: #FFFFFF;
+                    font-family: 'Segoe UI', Arial, sans-serif;
+                }
+                QLineEdit {
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 2px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 12px;
+                    padding: 16px 20px;
+                    color: #FFFFFF;
+                    font-size: 14px;
+                    font-weight: 400;
+                }
+                QLineEdit:focus {
+                    border: 2px solid #6366F1;
+                    background: rgba(255, 255, 255, 0.08);
+                }
+                QLineEdit:hover {
+                    background: rgba(255, 255, 255, 0.07);
+                }
+                QLabel {
+                    font-size: 16px;
+                    font-weight: 500;
+                    margin-bottom: 8px;
+                    color: #E5E7EB;
+                }
+                QPushButton {
+                    background: #6366F1;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 24px;
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+                QPushButton:hover {
+                    background: #5B5BD6;
+                }
+                QPushButton:pressed {
+                    background: #4F46E5;
+                }
+            """)
+        else:
+            self.setStyleSheet(""" 
+                QWidget {
+                    background: #FAFAFA;
+                    color: #1F2937;
+                    font-family: 'Segoe UI', Arial, sans-serif;
+                }
+                QLineEdit {
+                    background: rgba(255, 255, 255, 0.9);
+                    border: 2px solid rgba(229, 231, 235, 0.8);
+                    border-radius: 12px;
+                    padding: 16px 20px;
+                    color: #1F2937;
+                    font-size: 14px;
+                    font-weight: 400;
+                }
+                QLineEdit:focus {
+                    border: 2px solid #FBBF24;
+                    background: rgba(255, 255, 255, 1);
+                }
+                QLineEdit:hover {
+                    background: rgba(255, 255, 255, 1);
+                }
+                QLabel {
+                    font-size: 16px;
+                    font-weight: 500;
+                    margin-bottom: 8px;
+                    color: #374151;
+                }
+                QPushButton {
+                    background: #FBBF24;
+                    color: #1F2937;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 24px;
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+                QPushButton:hover {
+                    background: #F59E0B;
+                }
+                QPushButton:pressed {
+                    background: #D97706;
+                }
+            """)
+    
+    def toggle_password_visibility(self):
+        if self.api_key_input.echoMode() == QLineEdit.Password:
+            self.api_key_input.setEchoMode(QLineEdit.Normal)
+            self.show_password_btn.setText("🙈")
+        else:
+            self.api_key_input.setEchoMode(QLineEdit.Password)
+            self.show_password_btn.setText("👁")
     
     def save_api_key(self):
         api = self.api_key_input.text().strip()
@@ -147,221 +265,287 @@ class ApiWorker(QThread):
         except Exception as e:
             self.error.emit(str(e))  # Передача ошибок
 
-
-
 class GlowingButton(QPushButton):
     def __init__(self, text):
         super().__init__(text)
-        self.shadow_effect = QGraphicsDropShadowEffect(self)
-        self.shadow_effect.setBlurRadius(0)
-        self.shadow_effect.setOffset(0, 0)
-        self.shadow_effect.setColor(Qt.cyan)
-        self.setGraphicsEffect(self.shadow_effect)
-
-        # Создаём анимацию свечения для кнопки
-        self.animation = QPropertyAnimation(self.shadow_effect, b"blurRadius")
-        self.animation.setDuration(300)
-        self.animation.setStartValue(0)
-        self.animation.setEndValue(25)
-
-    def enterEvent(self, event):
-        # При наведении на кнопку активируется эффект свечения
-        self.animation.setDirection(QPropertyAnimation.Forward)
-        self.animation.start()
-        super().enterEvent(event)
-
-    def leaveEvent(self, event):
-        # При уходе курсора эффект свечения исчезает
-        self.animation.setDirection(QPropertyAnimation.Backward)
-        self.animation.start()
-        super().leaveEvent(event)
+        self.setStyleSheet("""
+            QPushButton {
+                background: #6366F1;
+                color: #FFFFFF;
+                border: none;
+                border-radius: 12px;
+                padding: 12px 20px;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background: #5B5BD6;
+            }
+            QPushButton:pressed {
+                background: #4F46E5;
+            }
+        """)
 
 class CopyButton(QPushButton):
-    def __init__(self, text="Копировать"):
+    def __init__(self, text="Копировать", dark_mode=True):
         super().__init__(text)
-        # Создаем эффект свечения
-        self.shadow_effect = QGraphicsDropShadowEffect(self)
-        self.shadow_effect.setColor(Qt.cyan)
-        self.shadow_effect.setBlurRadius(0)
-        self.shadow_effect.setOffset(0)
-        self.setGraphicsEffect(self.shadow_effect)
+        self.dark_mode = dark_mode
+        self.update_theme()
+        
+    def update_theme(self):
+        if self.dark_mode:
+            self.setStyleSheet("""
+                QPushButton {
+                    background: rgba(139, 92, 246, 0.2);
+                    border: 1px solid rgba(139, 92, 246, 0.3);
+                    border-radius: 8px;
+                    font-size: 12px;
+                    color: #FFFFFF;
+                    padding: 8px 16px;
+                    text-align: center;
+                    min-width: 80px;
+                    min-height: 28px;
+                }
+                QPushButton:hover {
+                    background: rgba(139, 92, 246, 0.3);
+                    color: #FFFFFF;
+                }
+                QPushButton:pressed {
+                    background: rgba(139, 92, 246, 0.4);
+                    color: #FFFFFF;
+                }
+            """)
+        else:
+            self.setStyleSheet("""
+                QPushButton {
+                    background: rgba(251, 191, 36, 0.2);
+                    border: 1px solid rgba(251, 191, 36, 0.4);
+                    border-radius: 8px;
+                    font-size: 12px;
+                    color: #1F2937;
+                    padding: 8px 16px;
+                    text-align: center;
+                    min-width: 80px;
+                    min-height: 28px;
+                }
+                QPushButton:hover {
+                    background: rgba(251, 191, 36, 0.3);
+                    color: #1F2937;
+                }
+                QPushButton:pressed {
+                    background: rgba(251, 191, 36, 0.4);
+                    color: #1F2937;
+                }
+            """)
 
-        # Создаем анимацию свечения
-        self.animation = QPropertyAnimation(self.shadow_effect, b"blurRadius")
-        self.animation.setDuration(300)
-        self.animation.setStartValue(0)
-        self.animation.setEndValue(20)
-
-    def enterEvent(self, event):
-        # При наведении кнопки эффект свечения увеличивается
-        self.animation.setDirection(QPropertyAnimation.Forward)
-        self.animation.start()
-        super().enterEvent(event)
-
-    def leaveEvent(self, event):
-        # При уходе эффект свечения исчезает
-        self.animation.setDirection(QPropertyAnimation.Backward)
-        self.animation.start()
-        super().leaveEvent(event)
+class ThemeToggle(QWidget):
+    theme_changed = pyqtSignal(bool)  # True for dark, False for light
+    
+    def __init__(self, is_dark=True):
+        super().__init__()
+        self.is_dark = is_dark
+        self.setFixedSize(60, 30)
+        self.setStyleSheet("background: transparent;")
+        
+    def paintEvent(self, event):
+        from PyQt5.QtGui import QPainter, QBrush, QPen
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Рисуем фон переключателя
+        if self.is_dark:
+            bg_color = QColor(99, 102, 241)  # Синий для темной темы
+        else:
+            bg_color = QColor(251, 191, 36)  # Желтый для светлой темы
+            
+        painter.setBrush(QBrush(bg_color))
+        painter.setPen(QPen(bg_color))
+        painter.drawRoundedRect(0, 0, 60, 30, 15, 15)
+        
+        # Рисуем переключатель
+        circle_color = QColor(255, 255, 255)
+        painter.setBrush(QBrush(circle_color))
+        painter.setPen(QPen(circle_color))
+        
+        if self.is_dark:
+            painter.drawEllipse(32, 3, 24, 24)  # Справа для темной темы
+        else:
+            painter.drawEllipse(4, 3, 24, 24)   # Слева для светлой темы
+    
+    def mousePressEvent(self, event):
+        self.is_dark = not self.is_dark
+        self.theme_changed.emit(self.is_dark)
+        self.update()  # Перерисовываем виджет
 
 class NexoraAI_Interface(QWidget):
     def __init__(self):
         super().__init__()
         self.model_map = {
-            "Deepseek-R1-free": "deepseek/deepseek-r1:free",
-            "Liama-4-scout-free": "meta-llama/llama-4-scout:free",
-            "Gemini-2.0-flash-exp-free": "google/gemini-2.0-flash-exp:free"
+            "Deepseek-R1": "deepseek/deepseek-r1:free",
+            "Llama-4": "meta-llama/llama-4-scout:free",
+            "Gemini-2.0": "google/gemini-2.0-flash-exp:free"
         }
-        self.selected_model = self.model_map["Deepseek-R1-free"]
+        self.selected_model = self.model_map["Deepseek-R1"]
         self.setWindowTitle("NexoraAI Client")
-        self.resize(1100, 650)  # Установлен размер окна
+        self.resize(1200, 750)
         self.chat_history = []  # (роль, текст, время)
         self.loading_timer = QTimer()
         self.loading_timer.timeout.connect(self.update_loading_dots)
         self.loading_index = 0
         self.loading_chars = ['⠁','⠂','⠄','⡀','⢀','⠠','⠐','⠈']
-        self.chat_sessions = load_sessions_from_file()  # Загружаем сессии из файла
-        self.current_session_index = -1  # индекс текущей сессии
-        self.dark_mode = True  # Start in dark mode
+        self.chat_sessions = load_sessions_from_file()
+        self.current_session_index = -1
+        
+        # Загружаем настройки темы
+        self.settings = load_settings()
+        self.dark_mode = self.settings.get("dark_mode", True)
+        
         self.setup_ui()
         self.add_new_session("Новый чат")
-        self.chat_sessions = load_sessions_from_file()  # Загружаем сессии из файла
+        self.chat_sessions = load_sessions_from_file()
         self.load_sessions_into_list()
 
-
     def setup_ui(self):
-        main_layout = QHBoxLayout()  # Horizontal layout for chat history and chat area
+        main_layout = QHBoxLayout()
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Левая панель
         left_panel = QWidget()
         left_layout = QVBoxLayout()
-        left_layout.setSpacing(10)
-        left_layout.setContentsMargins(10, 10, 10, 10)
+        left_layout.setSpacing(16)
+        left_layout.setContentsMargins(24, 24, 24, 24)
         left_panel.setLayout(left_layout)
-        left_panel.setFixedWidth(280)
+        left_panel.setFixedWidth(320)
 
-        buttons_top_layout = QHBoxLayout()
-        buttons_top_layout.setSpacing(10)
+        # Заголовок боковой панели
+        self.sidebar_title = QLabel("Чаты")
+        self.sidebar_title.setStyleSheet("""
+            font-size: 18px; 
+            font-weight: 700; 
+            color: #FFFFFF; 
+            margin-bottom: 16px;
+        """)
+        left_layout.addWidget(self.sidebar_title)
 
+        # Кнопка нового чата
+        self.new_session_button_left = GlowingButton("+ Новый чат")
+        self.new_session_button_left.clicked.connect(self.add_new_session)
+        self.new_session_button_left.setFixedHeight(48)
+        left_layout.addWidget(self.new_session_button_left)
+
+        # Список сессий
         self.session_list = QListWidget()
         self.session_list.itemClicked.connect(self.on_session_selected)
         left_layout.addWidget(self.session_list, stretch=1)
 
-        self.delete_session_button = GlowingButton("Удалить чат")
+        # Кнопки управления
+        buttons_layout = QVBoxLayout()
+        buttons_layout.setSpacing(8)
+
+        self.delete_session_button = GlowingButton("🗑 Удалить чат")
         self.delete_session_button.clicked.connect(self.delete_current_session)
-        buttons_top_layout.addWidget(self.delete_session_button)
+        buttons_layout.addWidget(self.delete_session_button)
 
-        self.delete_sessions_button = GlowingButton("Удалить всё")
+        self.delete_sessions_button = GlowingButton("🗑 Очистить всё")
         self.delete_sessions_button.clicked.connect(self.delete_all_sessions)
-        buttons_top_layout.addWidget(self.delete_sessions_button)
+        buttons_layout.addWidget(self.delete_sessions_button)
 
-        left_layout.addLayout(buttons_top_layout)
-
-        self.new_session_button_left = GlowingButton("Новый чат")
-        self.new_session_button_left.clicked.connect(self.add_new_session)
-        self.new_session_button_left.setFixedHeight(40)
-        left_layout.addWidget(self.new_session_button_left)
-
+        left_layout.addLayout(buttons_layout)
 
         main_layout.addWidget(left_panel)
 
-        # --- Right part of the interface ---
+        # Правая панель
         right_widget = QWidget()
         right_layout = QVBoxLayout()
+        right_layout.setSpacing(24)
+        right_layout.setContentsMargins(32, 32, 32, 32)
         right_widget.setLayout(right_layout)
 
-        self.chat_layout = QVBoxLayout()
-        right_layout.addLayout(self.chat_layout)
+        # Верхняя панель
+        top_layout = QHBoxLayout()
+        top_layout.setSpacing(16)
 
-        # Timer for bot response
-        self.bot_response_timer = QTimer()
-        self.bot_response_timer.timeout.connect(self.update_bot_timer)
+        # Заголовок
+        title_label = QLabel("NexoraAI")
+        title_label.setStyleSheet("""
+            font-size: 28px; 
+            font-weight: 800; 
+            color: #6366F1;
+        """)
+        top_layout.addWidget(title_label)
 
-        # Combo box for model selection
+        # Переключатель темы
+        theme_container = QWidget()
+        theme_layout = QHBoxLayout()
+        theme_layout.setContentsMargins(0, 0, 0, 0)
+        theme_layout.setSpacing(8)
+        
+        self.theme_label = QLabel("🌙" if self.dark_mode else "☀️")
+        self.theme_label.setStyleSheet("font-size: 16px; color: #9CA3AF;")
+        theme_layout.addWidget(self.theme_label)
+        
+        self.theme_toggle = ThemeToggle(self.dark_mode)
+        self.theme_toggle.theme_changed.connect(self.on_theme_changed)
+        theme_layout.addWidget(self.theme_toggle)
+        
+        theme_container.setLayout(theme_layout)
+        top_layout.addWidget(theme_container)
+
+        top_layout.addStretch()
+
+        # Выбор модели
+        model_label = QLabel("🤖 Модель:")
+        model_label.setStyleSheet("font-size: 14px; color: #9CA3AF; font-weight: 500;")
+        top_layout.addWidget(model_label)
+
         self.select_list = QComboBox()
-        self.select_list.addItems(["Deepseek-R1-free", "Liama-4-scout-free", "Gemini-2.0-flash-exp-free"])
+        self.select_list.addItems(["Deepseek-R1", "Llama-4", "Gemini-2.0"])
         self.select_list.currentIndexChanged.connect(self.on_select_change)
         self.select_list.currentIndexChanged.connect(self.on_model_change)
-
-        # Create a horizontal layout for the combo box and clear chat button
-        top_layout = QHBoxLayout()
         top_layout.addWidget(self.select_list)
 
-        # Clear chat button
-        self.clear_button = GlowingButton("Очистить чат")
+        # Кнопка очистки чата
+        self.clear_button = GlowingButton("🧹 Очистить")
         self.clear_button.clicked.connect(self.clear_chat)
-        top_layout.addStretch()  # This will push the clear chat button to the right
-        top_layout.addWidget(self.clear_button)  # Add the button after the stretch
+        top_layout.addWidget(self.clear_button)
 
-        self.chat_layout.addLayout(top_layout)
+        right_layout.addLayout(top_layout)
 
-        title_label = QLabel("NexoraAI Client")
-        title_font = QFont("Helvetica", 20, QFont.Bold)
-        title_label.setFont(title_font)
-        title_label.setAlignment(Qt.AlignCenter)
-        self.chat_layout.addWidget(title_label)
-
-        # Scroll area for messages
+        # Область сообщений
         self.scroll_area = QScrollArea()
-        self.scroll_area.setFixedSize(800, 450)  # Set size for message area
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setStyleSheet("""
-            QScrollArea {
-                border: 4px solid #555;
-                border-radius: 8px;
-                background-color: #1E1E1E;
-                color: #191970;
-            }
-        """)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.messages_container = QWidget()
         self.messages_layout = QVBoxLayout()
         self.messages_layout.setAlignment(Qt.AlignTop)
+        self.messages_layout.setSpacing(16)
+        self.messages_layout.setContentsMargins(16, 16, 16, 16)
         self.messages_container.setLayout(self.messages_layout)
         self.scroll_area.setWidget(self.messages_container)
-        self.chat_layout.addWidget(self.scroll_area)
+        right_layout.addWidget(self.scroll_area, stretch=1)
 
-        # Input field and send button
+        # Поле ввода
+        input_container = QWidget()
         input_layout = QHBoxLayout()
+        input_layout.setSpacing(12)
+        input_layout.setContentsMargins(0, 0, 0, 0)
+        input_container.setLayout(input_layout)
+
         self.input_field = QTextEdit()
-        self.input_field.setFixedHeight(45)
-        self.input_field.setStyleSheet("""
-            QTextEdit {
-                background-color: #2C2C2C;
-                color: #FFFFFF;
-                border: 2px solid #555;
-                border-radius: 10px;
-                padding: 8px;
-                font-family: Helvetica;
-                font-size: 16px;
-            }
-            QTextEdit:hover {
-                border-color: #888;
-            }
-            QTextEdit:focus {
-                border-color: #3A86FF;
-                outline: none;
-            }
-        """)
+        self.input_field.setFixedHeight(60)
+        self.input_field.setPlaceholderText("Введите ваше сообщение...")
         self.input_field.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         input_layout.addWidget(self.input_field)
 
-        self.send_button = GlowingButton("Отправить")
-        self.send_button.setFixedSize(160, 45)  # Set button size
-        self.send_button.setStyleSheet("""
-            QPushButton {
-                background-color: #3A86FF;
-                color: #FFFFFF;
-                border-radius: 8px;
-                padding: 8px 16px;
-                font-family: Helvetica;
-                font-size: 16px;
-                font-weight: bold;
-            }
-        """)
+        self.send_button = GlowingButton("➤")
+        self.send_button.setFixedSize(60, 60)
         self.send_button.clicked.connect(self.handle_send)
         input_layout.addWidget(self.send_button)
-        self.chat_layout.addLayout(input_layout)
 
-        # Original keyPressEvent
+        right_layout.addWidget(input_container)
+
+        # Оригинальный keyPressEvent
         self.original_keyPressEvent = self.input_field.keyPressEvent
         self.input_field.keyPressEvent = self.custom_keyPressEvent
 
@@ -370,6 +554,405 @@ class NexoraAI_Interface(QWidget):
 
         self.apply_theme()
         self.input_field.setFocus()
+
+    def apply_theme(self):
+        if self.dark_mode:
+            # Темная тема
+            self.setStyleSheet("""
+                QWidget {
+                    background: #0F0F23;
+                    color: #FFFFFF;
+                    font-family: 'Segoe UI', Arial, sans-serif;
+                }
+                
+                /* Список сессий */
+                QListWidget {
+                    background: transparent;
+                    border: none;
+                    outline: none;
+                    color: #E5E7EB;
+                    font-size: 14px;
+                }
+                QListWidget::item {
+                    background: rgba(255, 255, 255, 0.05);
+                    border-radius: 12px;
+                    padding: 12px 16px;
+                    margin-bottom: 8px;
+                    border: 1px solid transparent;
+                    color: #E5E7EB;
+                }
+                QListWidget::item:hover {
+                    background: rgba(255, 255, 255, 0.08);
+                    border: 1px solid rgba(99, 102, 241, 0.3);
+                    color: #FFFFFF;
+                }
+                QListWidget::item:selected {
+                    background: rgba(99, 102, 241, 0.2);
+                    border: 1px solid #6366F1;
+                    color: #FFFFFF;
+                }
+                
+                /* Область сообщений */
+                QScrollArea {
+                    background: rgba(255, 255, 255, 0.02);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    border-radius: 16px;
+                }
+                
+                /* Полоса прокрутки */
+                QScrollBar:vertical {
+                    background: rgba(255, 255, 255, 0.05);
+                    width: 8px;
+                    border-radius: 4px;
+                    margin: 0;
+                }
+                QScrollBar::handle:vertical {
+                    background: rgba(99, 102, 241, 0.6);
+                    border-radius: 4px;
+                    min-height: 20px;
+                }
+                QScrollBar::handle:vertical:hover {
+                    background: rgba(99, 102, 241, 0.8);
+                }
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                    border: none;
+                    background: none;
+                }
+                
+                /* Поле ввода */
+                QTextEdit {
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 2px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 16px;
+                    padding: 12px 20px;
+                    color: #FFFFFF;
+                    font-size: 16px;
+                    font-weight: 400;
+                }
+                QTextEdit:focus {
+                    border: 2px solid #6366F1;
+                    background: rgba(255, 255, 255, 0.08);
+                }
+                
+                /* Кнопки */
+                QPushButton {
+                    background: #6366F1;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+                QPushButton:hover {
+                    background: #5B5BD6;
+                }
+                QPushButton:pressed {
+                    background: #4F46E5;
+                }
+                
+                /* Выпадающий список */
+                QComboBox {
+                    background: rgba(255, 255, 255, 0.9);
+                    color: #1F2937;
+                    border: 1px solid rgba(229, 231, 235, 0.8);
+                    border-radius: 8px;
+                    padding: 8px 16px;
+                    font-size: 14px;
+                    min-width: 120px;
+                }
+                QComboBox:hover {
+                    background: rgba(255, 255, 255, 1);
+                    border: 1px solid rgba(251, 191, 36, 0.5);
+                }
+                QComboBox::drop-down {
+                    border: none;
+                    background: transparent;
+                    width: 0px;
+                }
+                QComboBox::down-arrow {
+                    image: none;
+                    background: transparent;
+                    border: none;
+                    width: 0px;
+                    height: 0px;
+                }
+                QComboBox QAbstractItemView {
+                    background: #FFFFFF;
+                    color: #1F2937;
+                    selection-background-color: #FBBF24;
+                    border: 1px solid rgba(229, 231, 235, 0.8);
+                    border-radius: 8px;
+                    padding: 4px;
+                }
+            """)
+            # Обновляем стиль заголовка боковой панели для темной темы
+            self.sidebar_title.setStyleSheet("""
+                font-size: 18px; 
+                font-weight: 700; 
+                color: #FFFFFF; 
+                margin-bottom: 16px;
+            """)
+        else:
+            # Светлая тема
+            self.setStyleSheet("""
+                QWidget {
+                    background: #FAFAFA;
+                    color: #1F2937;
+                    font-family: 'Segoe UI', Arial, sans-serif;
+                }
+                
+                /* Список сессий */
+                QListWidget {
+                    background: transparent;
+                    border: none;
+                    outline: none;
+                    color: #374151;
+                    font-size: 14px;
+                }
+                QListWidget::item {
+                    background: rgba(255, 255, 255, 0.8);
+                    border-radius: 12px;
+                    padding: 12px 16px;
+                    margin-bottom: 8px;
+                    border: 1px solid rgba(229, 231, 235, 0.8);
+                    color: #374151;
+                }
+                QListWidget::item:hover {
+                    background: rgba(249, 250, 251, 1);
+                    border: 1px solid rgba(251, 191, 36, 0.5);
+                    color: #1F2937;
+                }
+                QListWidget::item:selected {
+                    background: rgba(251, 191, 36, 0.1);
+                    border: 1px solid #FBBF24;
+                    color: #1F2937;
+                }
+                
+                /* Область сообщений */
+                QScrollArea {
+                    background: rgba(255, 255, 255, 0.7);
+                    border: 1px solid rgba(229, 231, 235, 0.8);
+                    border-radius: 16px;
+                }
+                
+                /* Полоса прокрутки */
+                QScrollBar:vertical {
+                    background: rgba(229, 231, 235, 0.3);
+                    width: 8px;
+                    border-radius: 4px;
+                    margin: 0;
+                }
+                QScrollBar::handle:vertical {
+                    background: rgba(251, 191, 36, 0.6);
+                    border-radius: 4px;
+                    min-height: 20px;
+                }
+                QScrollBar::handle:vertical:hover {
+                    background: rgba(251, 191, 36, 0.8);
+                }
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                    border: none;
+                    background: none;
+                }
+                
+                /* Поле ввода */
+                QTextEdit {
+                    background: rgba(255, 255, 255, 0.9);
+                    border: 2px solid rgba(229, 231, 235, 0.8);
+                    border-radius: 16px;
+                    padding: 12px 20px;
+                    color: #1F2937;
+                    font-size: 16px;
+                    font-weight: 400;
+                }
+                QTextEdit:focus {
+                    border: 2px solid #FBBF24;
+                    background: rgba(255, 255, 255, 1);
+                }
+                
+                /* Кнопки */
+                QPushButton {
+                    background: #FBBF24;
+                    color: #1F2937;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+                QPushButton:hover {
+                    background: #F59E0B;
+                }
+                QPushButton:pressed {
+                    background: #D97706;
+                }
+                
+                /* Выпадающий список */
+                QComboBox {
+                    background: rgba(255, 255, 255, 0.9);
+                    color: #1F2937;
+                    border: 1px solid rgba(229, 231, 235, 0.8);
+                    border-radius: 8px;
+                    padding: 8px 16px;
+                    font-size: 14px;
+                    min-width: 120px;
+                }
+                QComboBox:hover {
+                    background: rgba(255, 255, 255, 1);
+                    border: 1px solid rgba(251, 191, 36, 0.5);
+                }
+                QComboBox::drop-down {
+                    border: none;
+                    background: transparent;
+                    width: 0px;
+                }
+                QComboBox::down-arrow {
+                    image: none;
+                    background: transparent;
+                    border: none;
+                    width: 0px;
+                    height: 0px;
+                }
+                QComboBox QAbstractItemView {
+                    background: #FFFFFF;
+                    color: #1F2937;
+                    selection-background-color: #FBBF24;
+                    border: 1px solid rgba(229, 231, 235, 0.8);
+                    border-radius: 8px;
+                    padding: 4px;
+                }
+            """)
+            # Обновляем стиль заголовка боковой панели для светлой темы
+            self.sidebar_title.setStyleSheet("""
+                font-size: 18px; 
+                font-weight: 700; 
+                color: #1F2937; 
+                margin-bottom: 16px;
+            """)
+        
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.update()
+
+    def update_chat_display(self):
+        # Очищаем предыдущие сообщения
+        for i in reversed(range(self.messages_layout.count())):
+            widget = self.messages_layout.itemAt(i).widget()
+            if widget:
+                widget.deleteLater()
+        
+        for item in self.chat_history:
+            if item[0] == "user":
+                if len(item) == 3:
+                    role, text, time_str = item
+                else:
+                    role, text = item
+                    time_str = ""
+                    
+                message_widget = QWidget()
+                if self.dark_mode:
+                    message_widget.setStyleSheet("""
+                        background: rgba(99, 102, 241, 0.1);
+                        border-radius: 20px;
+                        border: 1px solid rgba(99, 102, 241, 0.2);
+                        padding: 16px;
+                        margin: 8px;
+                    """)
+                    header_color = "#9CA3AF"
+                    text_color = "#FFFFFF"
+                else:
+                    message_widget.setStyleSheet("""
+                        background: rgba(251, 191, 36, 0.1);
+                        border-radius: 20px;
+                        border: 1px solid rgba(251, 191, 36, 0.3);
+                        padding: 16px;
+                        margin: 8px;
+                    """)
+                    header_color = "#6B7280"
+                    text_color = "#1F2937"
+                
+                layout = QVBoxLayout()
+                layout.setContentsMargins(20, 16, 20, 16)
+                
+                header = QLabel(f"👤 Вы • {time_str}")
+                header.setStyleSheet(f"font-size: 12px; color: {header_color}; margin-bottom: 8px; font-weight: 500;")
+                layout.addWidget(header)
+                
+                text_label = QLabel(text)
+                text_label.setWordWrap(True)
+                text_label.setStyleSheet(f"font-size: 15px; color: {text_color}; line-height: 1.5;")
+                layout.addWidget(text_label)
+                
+                message_widget.setLayout(layout)
+                self.messages_layout.addWidget(message_widget)
+                
+            elif item[0] == "bot":
+                if len(item) == 3:
+                    role, text, time_str = item
+                else:
+                    role, text = item[0], item[1]
+                    time_str = ""
+                    
+                message_widget = QWidget()
+                if self.dark_mode:
+                    message_widget.setStyleSheet("""
+                        background: rgba(255, 255, 255, 0.03);
+                        border-radius: 20px;
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        padding: 16px;
+                        margin: 8px;
+                    """)
+                    header_color = "#9CA3AF"
+                    text_color = "#E5E7EB"
+                else:
+                    message_widget.setStyleSheet("""
+                        background: rgba(255, 255, 255, 0.9);
+                        border-radius: 20px;
+                        border: 1px solid rgba(229, 231, 235, 0.8);
+                        padding: 16px;
+                        margin: 8px;
+                    """)
+                    header_color = "#6B7280"
+                    text_color = "#374151"
+                
+                layout = QVBoxLayout()
+                layout.setContentsMargins(20, 16, 20, 16)
+                
+                header_layout = QHBoxLayout()
+                header_label = QLabel(f"🤖 NexoraAI • {time_str}")
+                header_label.setStyleSheet(f"font-size: 12px; color: {header_color}; font-weight: 500;")
+                header_layout.addWidget(header_label)
+                
+                header_layout.addStretch()
+                
+                copy_button = CopyButton(dark_mode=self.dark_mode)
+                copy_button.clicked.connect(lambda checked, t=text: self.copy_text(t))
+                header_layout.addWidget(copy_button)
+                
+                layout.addLayout(header_layout)
+                
+                html = markdown.markdown(text, extensions=['fenced_code', 'codehilite'])
+                text_label = QLabel(html)
+                text_label.setWordWrap(True)
+                text_label.setTextFormat(Qt.RichText)
+                text_label.setStyleSheet(f"""
+                    font-size: 15px; 
+                    color: {text_color}; 
+                    line-height: 1.6;
+                    margin-top: 8px;
+                """)
+                layout.addWidget(text_label)
+                
+                message_widget.setLayout(layout)
+                self.messages_layout.addWidget(message_widget)
+        
+        # Прокручиваем вниз
+        scrollbar = self.scroll_area.verticalScrollBar()
+        QTimer.singleShot(50, lambda: scrollbar.setValue(scrollbar.maximum()))
+
+    def copy_text(self, text):
+        QApplication.clipboard().setText(text)
 
     def delete_current_session(self):
         index = self.current_session_index
@@ -417,184 +1000,10 @@ class NexoraAI_Interface(QWidget):
             self.current_session_index = -1
             self.chat_history = []
 
-    def apply_theme(self):
-        if True:
-            # Dark theme styles
-            self.setStyleSheet("""
-            QWidget {
-                background-color: #121212;
-                color: #FFFFFF;
-            }
-            QTextEdit {
-                background-color: #1E1E1E;
-                color: #FFFFFF;
-                border: 1px solid #333;
-                border-radius: 8px;
-                padding: 10px;
-                font-family: Helvetica;
-                font-size: 14px;
-            }
-            QPushButton {
-                background-color: #3A86FF;
-                color: #FFFFFF;
-                border-radius: 8px;
-                padding: 8px 16px;
-            }
-            QLabel {
-                color: #FFFFFF;
-            }
-            QScrollArea {
-                border: 4px solid #555;
-                border-radius: 8px;
-                background-color: #1E1E1E;
-            }
-            QScrollBar:vertical {
-                background: #D3D3D3;
-                width: 10px;
-                border-radius: 8px;
-            }
-            QScrollBar::handle:vertical {
-                background: #3A86FF;
-                min-height: 20px;
-                border-radius: 8px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background: #5A99FF;
-            }
-            QComboBox {
-                background-color: #2C2C2C;
-                color: #FFFFFF;
-                border: 1px solid #555;
-                border-radius: 4px;
-                padding: 4px 10px 4px 8px;
-                min-width: 150px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #1E1E1E;
-                color: #FFFFFF;
-                selection-background-color: #3A86FF;
-                border: 1px solid #555;
-                border-radius: 4px;
-            }
-            """)
-            
-        self.style().unpolish(self)
-        self.style().polish(self)
-        self.update()
-
-    
-    def add_new_session(self, title=None):
-        # Создаём новую сессию с пустой историей
-        self.chat_sessions.append([])
-        self.current_session_index = len(self.chat_sessions) - 1
-        # Добавляем элемент в список сессий
-        display_title = title or f"Чат {self.current_session_index + 1}"
-        self.session_list.addItem(display_title)
-        self.session_list.setCurrentRow(self.current_session_index)
-        self.chat_history = self.chat_sessions[self.current_session_index]
-        self.update_chat_display()
-    
-    def delete_all_sessions(self):
-        self.chat_sessions.clear()
-        self.current_session_index = -1
-        self.chat_history.clear()
-        self.session_list.clear()
-        self.update_chat_display()
-        save_sessions_to_file(self.chat_sessions)  # Записать пустой список в файл
-
-    def on_session_selected(self, item):
-        index = self.session_list.currentRow()
-        if index < 0 or index >= len(self.chat_sessions):
-            return
-        self.current_session_index = index
-        self.chat_history = self.chat_sessions[index]
-        self.update_chat_display()
-
-    def clear_chat(self):
-        if self.current_session_index >= 0:
-            self.chat_sessions[self.current_session_index].clear()
-            self.chat_history = self.chat_sessions[self.current_session_index]
-        else:
-            self.chat_history.clear()
-        self.update_chat_display()
-
     def closeEvent(self, event):
         # Сохраняем сессии перед закрытием приложения
         save_sessions_to_file(self.chat_sessions)
         event.accept()  # Принять событие закрытия
-
-
-    def on_model_change(self, index):
-        item_text = self.select_list.itemText(index)
-        self.selected_model = self.model_map.get(item_text, "deepseek/deepseek-r1:free")
-    
-    def clear_chat(self):
-        # Очистка истории сообщений чата
-        self.chat_history.clear()
-        self.update_chat_display()
-
-    def custom_keyPressEvent(self, event):
-        # Обработка нажатий клавиш в текстовом поле
-        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
-            if not (event.modifiers() & Qt.ShiftModifier):
-                self.handle_send()
-                event.accept()
-            else:
-                self.original_keyPressEvent(event)
-        else:
-            self.original_keyPressEvent(event)
-
-    def update_chat_display(self):
-        for i in reversed(range(self.messages_layout.count())):
-            widget = self.messages_layout.itemAt(i).widget()
-            if widget:
-                widget.deleteLater()
-        for item in self.chat_history:
-            if item[0] == "user":
-                if len(item) == 3:
-                    role, text, time_str = item
-                else:
-                    role, text = item
-                    time_str = ""
-                message_widget = QWidget()
-                h_layout = QHBoxLayout()
-                message_widget.setLayout(h_layout)
-                text_label = QLabel()
-                text_label.setWordWrap(True)
-                formatted_text = '\n'.join([text[i:i + 75] for i in range(0, len(text), 75)])
-                text_label.setText(f'<b>Вы [{time_str}]:</b> {formatted_text}')
-                text_label.setStyleSheet("border-radius:8px; padding:8px; background-color:#222; color: #FFFFFF;")
-                h_layout.addWidget(text_label)
-            elif item[0] == "bot":
-                if len(item) == 3:
-                    role, text, time_str = item
-                else:
-                    role, text = item[0], item[1]
-                    time_str = ""
-                message_widget = QWidget()
-                h_layout = QHBoxLayout()
-                message_widget.setLayout(h_layout)
-                text_label = QLabel()
-                text_label.setWordWrap(True)
-                html = markdown.markdown(text, extensions=['fenced_code', 'codehilite'])
-                text_label.setText(f'<b>NexoraAI [{time_str}]:</b><br>{html}')
-                text_label.setTextFormat(Qt.RichText)
-                text_label.setStyleSheet("border-radius:8px; padding:8px; background-color:#333; color: #FFFFFF;")
-                copy_button = CopyButton("Копировать")
-                copy_button.setFixedSize(100, 30)
-                copy_button.clicked.connect(lambda checked, t=text: self.copy_text(t))
-                h_layout.addWidget(text_label)
-                h_layout.addWidget(copy_button)
-                h_layout.setStretch(0, 1)
-                h_layout.setStretch(1, 0)
-            else:
-                continue
-            self.messages_layout.addWidget(message_widget)
-        scrollbar = self.scroll_area.verticalScrollBar()
-        scrollbar.setValue(scrollbar.maximum())
-
-    def copy_text(self, text):
-        QApplication.clipboard().setText(text)
 
     def handle_send(self):
         user_text = self.input_field.toPlainText().strip()
@@ -627,6 +1036,10 @@ class NexoraAI_Interface(QWidget):
         self.send_button.setEnabled(False)
         self.loading_dots_count = 0
         self.loading_timer.start(300)
+
+        # Таймер для ответа бота
+        self.bot_response_timer = QTimer()
+        self.bot_response_timer.timeout.connect(self.update_bot_timer)
         self.bot_response_timer.start(1000)
 
         messages = []
@@ -653,9 +1066,6 @@ class NexoraAI_Interface(QWidget):
         self.worker.start()
         self.input_field.setFocus()
 
-
-
-
     def update_bot_timer(self):
         if self.chat_history and self.chat_history[-1][0] == "bot":
             self.chat_history[-1] = ("bot", "ИИ думает...")
@@ -663,7 +1073,8 @@ class NexoraAI_Interface(QWidget):
 
     def on_response(self, response):
         self.loading_timer.stop()
-        self.bot_response_timer.stop()
+        if hasattr(self, 'bot_response_timer'):
+            self.bot_response_timer.stop()
         html_content = markdown.markdown(response)
         timestamp = datetime.now().strftime("%H:%M:%S")
         if self.chat_history and self.chat_history[-1][0] == "bot":
@@ -676,6 +1087,69 @@ class NexoraAI_Interface(QWidget):
         self.update_chat_display()
         self.send_button.setEnabled(True)
 
+    def on_model_change(self, index):
+        item_text = self.select_list.itemText(index)
+        self.selected_model = self.model_map.get(item_text, "deepseek/deepseek-r1:free")
+    
+    def clear_chat(self):
+        # Очистка истории сообщений чата
+        if self.current_session_index >= 0:
+            self.chat_sessions[self.current_session_index].clear()
+            self.chat_history = self.chat_sessions[self.current_session_index]
+        else:
+            self.chat_history.clear()
+        self.update_chat_display()
+
+    def custom_keyPressEvent(self, event):
+        # Обработка нажатий клавиш в текстовом поле
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            if not (event.modifiers() & Qt.ShiftModifier):
+                self.handle_send()
+                event.accept()
+            else:
+                self.original_keyPressEvent(event)
+        else:
+            self.original_keyPressEvent(event)
+
+    def add_new_session(self, title=None):
+        # Создаём новую сессию с пустой историей
+        self.chat_sessions.append([])
+        self.current_session_index = len(self.chat_sessions) - 1
+        # Добавляем элемент в список сессий
+        display_title = title or f"Чат {self.current_session_index + 1}"
+        self.session_list.addItem(display_title)
+        self.session_list.setCurrentRow(self.current_session_index)
+        self.chat_history = self.chat_sessions[self.current_session_index]
+        self.update_chat_display()
+    
+    def delete_all_sessions(self):
+        self.chat_sessions.clear()
+        self.current_session_index = -1
+        self.chat_history.clear()
+        self.session_list.clear()
+        self.update_chat_display()
+        save_sessions_to_file(self.chat_sessions)  # Записать пустой список в файл
+
+    def on_session_selected(self, item):
+        index = self.session_list.currentRow()
+        if index < 0 or index >= len(self.chat_sessions):
+            return
+        self.current_session_index = index
+        self.chat_history = self.chat_sessions[index]
+        self.update_chat_display()
+
+    def on_theme_changed(self, is_dark):
+        self.dark_mode = is_dark
+        self.settings["dark_mode"] = is_dark
+        save_settings(self.settings)
+        
+        # Обновляем иконку рядом с переключателем
+        self.theme_label.setText("🌙" if is_dark else "☀️")
+        
+        # Применяем новую тему
+        self.apply_theme()
+        # Обновляем отображение сообщений с новыми цветами
+        self.update_chat_display()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
